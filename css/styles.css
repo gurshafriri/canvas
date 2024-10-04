@@ -1,0 +1,22 @@
+
+body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f0f0;
+}
+
+#myCanvas {
+    width: 400px;
+    height: 400px;
+    background-color: #4f4f4f; /* Darker grey background for better contrast */
+    box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.5);
+    transition: box-shadow 0.1s ease-in-out, transform 0.1s ease-in-out;
+}
+
+#myCanvas.pressed {
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.8); /* More prominent press effect */
+    transform: translateY(5px); /* Adds a 'pressed-down' feel */
+}
