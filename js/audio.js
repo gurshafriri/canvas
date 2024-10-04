@@ -25,23 +25,38 @@ function createReverbBuffer(duration = 7, decay = 2) {
 
 // Helper function to blend waveforms (square to sine)
 function createCustomWaveform(blend) {
+  console.log("start")
+  console.log('AudioContext state before resume:', audioCtx.state);
   const harmonics = 64;
-  const real = new Float32Array(harmonics);
-  const imag = new Float32Array(harmonics);
+  const real = new Float32Array(harmonics + 1); // +1 to include the DC component at index 0
+  const imag = new Float32Array(harmonics + 1);
 
-  real[1] = blend;
+  real[0] = 0; // DC offset
+  imag[0] = 0;
 
-  for (let i = 1; i < harmonics; i++) {
+  for (let i = 1; i <= harmonics; i++) {
     if (i % 2 !== 0) {
+      // For odd harmonics
+      real[i] = blend / i; // Square wave harmonics decrease with frequency
       imag[i] = Math.pow((1 - blend) / i, 1.3);
+    } else {
+      // Even harmonics set to zero
+      real[i] = 0;
+      imag[i] = 0;
     }
   }
 
-  return audioCtx.createPeriodicWave(real, imag);
+  // Create the PeriodicWave with disableNormalization set to true
+  return audioCtx.createPeriodicWave(real, imag, { disableNormalization: true });
 }
 
 // Function to start sound with ADSR envelope and reverb
 function startSound() {
+  // Resume the AudioContext if it's suspended
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+
   stopSound(); // Ensure previous sounds are stopped
 
   const pitch = 178;
@@ -86,9 +101,9 @@ function startSound() {
 
   // ADSR envelope
   const now = audioCtx.currentTime;
-  gainNode.gain.setValueAtTime(0, now);
-  gainNode.gain.linearRampToValueAtTime(0.8, now + 0.1);
-  gainNode.gain.linearRampToValueAtTime(0.6, now + 0.2);
+  gainNode.gain.setValueAtTime(0, now); // Start at 0 (silent)
+  gainNode.gain.linearRampToValueAtTime(0.8, now + 0.1); // Attack to 80% volume
+  gainNode.gain.linearRampToValueAtTime(0.6, now + 0.2); // Decay to 60% volume (sustain)
 }
 
 // Function to stop sound with Release
@@ -96,20 +111,22 @@ function stopSound() {
   const now = audioCtx.currentTime;
 
   if (oscillator) {
-    gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+    gainNode.gain.linearRampToValueAtTime(0, now + 0.3); // Smooth release
     oscillator.stop(now + 0.3);
+    oscillator = null; // Reset oscillator
   }
 
   if (oscillatorDrone) {
-    gainNodeDrone.gain.linearRampToValueAtTime(0, now + 0.3);
+    gainNodeDrone.gain.linearRampToValueAtTime(0, now + 0.3); // Smooth release
     oscillatorDrone.stop(now + 0.3);
+    oscillatorDrone = null; // Reset oscillatorDrone
   }
 }
 
 // Function to update the waveform based on mouse position
 function updateWaveform(waveformBlend) {
-  const customWaveform = createCustomWaveform(waveformBlend);
   if (oscillator) {
+    const customWaveform = createCustomWaveform(waveformBlend);
     oscillator.setPeriodicWave(customWaveform);
   }
 }
@@ -122,6 +139,7 @@ function updateGain(gainValue) {
 }
 
 export {
+  audioCtx,
   startSound,
   stopSound,
   updateWaveform,
