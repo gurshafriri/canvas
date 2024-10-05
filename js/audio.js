@@ -25,8 +25,6 @@ function createReverbBuffer(duration = 7, decay = 2) {
 
 // Helper function to blend waveforms (square to sine)
 function createCustomWaveform(blend) {
-  console.log("start")
-  console.log('AudioContext state before resume:', audioCtx.state);
   const harmonics = 64;
   const real = new Float32Array(harmonics + 1); // +1 to include the DC component at index 0
   const imag = new Float32Array(harmonics + 1);
@@ -51,12 +49,13 @@ function createCustomWaveform(blend) {
 }
 
 // Function to start sound with ADSR envelope and reverb
-function startSound() {
+async function startSound() {
   // Resume the AudioContext if it's suspended
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
-
+  console.log("starting sound")
+  console.log(audioCtx.state)
   stopSound(); // Ensure previous sounds are stopped
 
   const pitch = 178;
