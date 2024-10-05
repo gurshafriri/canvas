@@ -82,14 +82,10 @@ function setupEventListeners(canvas, ctx) {
   // Touch events
   canvas.addEventListener(
     'touchstart',
-    function (event) {
+    async function (event) {
       event.preventDefault(); // Prevent scrolling
       isDrawing = true;
       canvas.classList.add('pressed');
-
-      if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-      }
 
       startSound();
       handleMouseMove(event, canvas, ctx);
