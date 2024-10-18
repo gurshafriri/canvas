@@ -3,8 +3,10 @@
 // Web Audio API Setup
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-let oscillator, gainNode, filterNode, reverbNode;
+let oscillator1, oscillator2, gainNode1, gainNode2, gainNodeADSR, filterNode, reverbNode;
 let oscillatorDrone, gainNodeDrone, filterNodeDrone, reverbNodeDrone;
+
+const pitch = 316;
 
 // Function to create reverb impulse response
 function createReverbBuffer(duration = 7, decay = 2) {
@@ -23,42 +25,18 @@ function createReverbBuffer(duration = 7, decay = 2) {
   return impulse;
 }
 
-// Helper function to blend waveforms (square to sine)
-function createCustomWaveform(blend) {
-  const harmonics = 64;
-  const real = new Float32Array(harmonics + 1); // +1 to include the DC component at index 0
-  const imag = new Float32Array(harmonics + 1);
-
-  real[0] = 0; // DC offset
-  imag[0] = 0;
-
-  for (let i = 1; i <= harmonics; i++) {
-    if (i % 2 !== 0) {
-      // For odd harmonics
-      real[i] = blend / i; // Square wave harmonics decrease with frequency
-      imag[i] = Math.pow((1 - blend) / i, 1.3);
-    } else {
-      // Even harmonics set to zero
-      real[i] = 0;
-      imag[i] = 0;
-    }
-  }
-
-  // Create the PeriodicWave with disableNormalization set to true
-  return audioCtx.createPeriodicWave(real, imag, { disableNormalization: true });
-}
-
 // Function to start sound with ADSR envelope and reverb
 async function startSound() {
   // Resume the AudioContext if it's suspended
   if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    await audioCtx.resume();
   }
-  console.log("starting sound")
-  console.log(audioCtx.state)
+  console.log("starting sound");
+  console.log(audioCtx.state);
   stopSound(); // Ensure previous sounds are stopped
 
-  const pitch = 178;
+  
+  const now = audioCtx.currentTime;
 
   // Setup drone oscillator
   oscillatorDrone = audioCtx.createOscillator();
@@ -67,8 +45,8 @@ async function startSound() {
   reverbNodeDrone = audioCtx.createConvolver();
 
   filterNodeDrone.type = 'lowpass';
-  filterNodeDrone.frequency.setValueAtTime(pitch * 3, audioCtx.currentTime);
-  oscillatorDrone.frequency.setValueAtTime(pitch / 1.7, audioCtx.currentTime);
+  filterNodeDrone.frequency.setValueAtTime(pitch * 3, now);
+  oscillatorDrone.frequency.setValueAtTime(pitch / 1.7, now);
 
   reverbNodeDrone.buffer = createReverbBuffer(3, 7);
 
@@ -77,45 +55,84 @@ async function startSound() {
   gainNodeDrone.connect(reverbNodeDrone);
   reverbNodeDrone.connect(audioCtx.destination);
 
+  gainNodeDrone.gain.setValueAtTime(0.6,now)
+
   oscillatorDrone.start();
 
-  // Setup main oscillator
-  oscillator = audioCtx.createOscillator();
-  gainNode = audioCtx.createGain();
+  // Setup main oscillators
+  oscillator1 = audioCtx.createOscillator();
+  gainNode1 = audioCtx.createGain(); // Blending gain node for oscillator1
+
+  oscillator2 = audioCtx.createOscillator();
+  gainNode2 = audioCtx.createGain(); // Blending gain node for oscillator2
+
+  gainNodeADSR = audioCtx.createGain(); // Common gain node for ADSR envelope
+
   filterNode = audioCtx.createBiquadFilter();
   reverbNode = audioCtx.createConvolver();
 
   filterNode.type = 'lowpass';
-  filterNode.frequency.setValueAtTime(pitch * 3, audioCtx.currentTime);
-  oscillator.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+  filterNode.frequency.setValueAtTime(pitch * 3, now);
+
+  oscillator1.frequency.setValueAtTime(pitch, now);
+  oscillator1.type = 'sine'; // First oscillator is sine wave
+
+  oscillator2.frequency.setValueAtTime(pitch, now);
+  oscillator2.type = 'triangle'; // Second oscillator is triangle wave
 
   reverbNode.buffer = createReverbBuffer(3, 7);
 
-  oscillator.connect(filterNode);
-  filterNode.connect(gainNode);
-  gainNode.connect(reverbNode);
+  // Connect oscillators through blending gain nodes
+  oscillator1.connect(gainNode1);
+  oscillator2.connect(gainNode2);
+
+  // Blending gain nodes connect to the ADSR gain node
+  gainNode1.connect(gainNodeADSR);
+  gainNode2.connect(gainNodeADSR);
+
+  gainNodeADSR.connect(filterNode);
+
+  filterNode.connect(reverbNode);
   reverbNode.connect(audioCtx.destination);
 
-  oscillator.start();
+  oscillator1.start();
+  oscillator2.start();
 
-  // ADSR envelope
-  const now = audioCtx.currentTime;
-  gainNode.gain.setValueAtTime(0, now); // Start at 0 (silent)
-  gainNode.gain.linearRampToValueAtTime(0.8, now + 0.1); // Attack to 80% volume
-  gainNode.gain.linearRampToValueAtTime(0.6, now + 0.2); // Decay to 60% volume (sustain)
+  // Set initial gains for blending
+  gainNode1.gain.setValueAtTime(0.5, now); // Start with full gain on oscillator1 (sine wave)
+  gainNode2.gain.setValueAtTime(0.5, now); // Start with zero gain on oscillator2 (triangle wave)
+
+  // ADSR envelope applied to gainNodeADSR
+  gainNodeADSR.gain.setValueAtTime(0, now); // Start at 0 (silent)
+
+  // Attack phase
+  gainNodeADSR.gain.linearRampToValueAtTime(0.8, now + 0.1);
+
+  // Decay to sustain
+  gainNodeADSR.gain.linearRampToValueAtTime(0.6, now + 0.2);
 }
 
 // Function to stop sound with Release
 function stopSound() {
   const now = audioCtx.currentTime;
 
-  if (oscillator) {
-    gainNode.gain.linearRampToValueAtTime(0, now + 0.3); // Smooth release
-    oscillator.stop(now + 0.3);
-    oscillator = null; // Reset oscillator
+  if (gainNodeADSR) {
+    gainNodeADSR.gain.cancelScheduledValues(now);
+    gainNodeADSR.gain.linearRampToValueAtTime(0, now + 0.3); // Smooth release
+  }
+
+  if (oscillator1) {
+    oscillator1.stop(now + 0.3);
+    oscillator1 = null; // Reset oscillator1
+  }
+
+  if (oscillator2) {
+    oscillator2.stop(now + 0.3);
+    oscillator2 = null; // Reset oscillator2
   }
 
   if (oscillatorDrone) {
+    gainNodeDrone.gain.cancelScheduledValues(now);
     gainNodeDrone.gain.linearRampToValueAtTime(0, now + 0.3); // Smooth release
     oscillatorDrone.stop(now + 0.3);
     oscillatorDrone = null; // Reset oscillatorDrone
@@ -124,16 +141,36 @@ function stopSound() {
 
 // Function to update the waveform based on mouse position
 function updateWaveform(waveformBlend) {
-  if (oscillator) {
-    const customWaveform = createCustomWaveform(waveformBlend);
-    oscillator.setPeriodicWave(customWaveform);
+  if (gainNode1 && gainNode2) {
+    // Ensure waveformBlend is between 0 and 1
+    waveformBlend = Math.max(0, Math.min(1, waveformBlend));
+
+    const now = audioCtx.currentTime;
+
+    // Cancel scheduled values to prevent conflicts
+    gainNode1.gain.cancelScheduledValues(now);
+    gainNode2.gain.cancelScheduledValues(now);
+
+    // Adjust gains inversely
+    gainNode1.gain.setValueAtTime((1 - waveformBlend) * 0.9, now);
+    gainNode2.gain.setValueAtTime(waveformBlend * 0.9, now);
+
+    console.log(gainNode1.gain.value,gainNode2.gain.value,gainNodeDrone.gain.value)
   }
 }
 
 // Function to update gain based on mouse position
 function updateGain(gainValue) {
-  if (gainNode) {
-    gainNode.gain.setValueAtTime(gainValue, audioCtx.currentTime);
+  if (gainNodeADSR) {
+    const now = audioCtx.currentTime;
+    gainNodeADSR.gain.cancelScheduledValues(now);
+    gainNodeADSR.gain.setValueAtTime(gainValue, now);
+  }
+
+  if (oscillatorDrone) {
+    const now = audioCtx.currentTime
+    const mult = 1.4 + (0.5 * gainValue)
+    oscillatorDrone.frequency.setValueAtTime(pitch / mult, now)
   }
 }
 
