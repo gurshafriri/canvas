@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canvas with Reverb Effect</title>
-    <link rel="stylesheet" href="css/styles.css"> 
+    <title>Canvas with Scrolling Background and Navigation</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <!-- Larger background canvas -->
+    <div id="canvas-container">
+        <canvas id="backgroundCanvas" width="4000" height="4000"></canvas>
+    </div>
+
+    <!-- Smaller, fixed drawing/sound canvas -->
     <canvas id="myCanvas" width="400" height="400"></canvas>
 
-    <script type="module" src="js/main.js"></script> 
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

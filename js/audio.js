@@ -31,8 +31,6 @@ async function startSound() {
   if (audioCtx.state === 'suspended') {
     await audioCtx.resume();
   }
-  console.log("starting sound");
-  console.log(audioCtx.state);
   stopSound(); // Ensure previous sounds are stopped
 
   
@@ -154,8 +152,6 @@ function updateWaveform(waveformBlend) {
     // Adjust gains inversely
     gainNode1.gain.setValueAtTime((1 - waveformBlend) * 0.9, now);
     gainNode2.gain.setValueAtTime(waveformBlend * 0.9, now);
-
-    console.log(gainNode1.gain.value,gainNode2.gain.value,gainNodeDrone.gain.value)
   }
 }
 

@@ -1,22 +1,43 @@
+/* styles.css */
 
 body, html {
-    height: 100%;
     margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #f0f0f0;
+    padding: 0;
+    width: 4000px;
+    height: 4000px;
+    overflow: auto; /* Enable scrolling */
+}
+
+#canvas-container {
+    width: 4000px;
+    height: 4000px;
+    display: block; /* Ensure it is a block-level element */
+}
+
+#backgroundCanvas {
+    width: 4000px;
+    height: 4000px;
+    display: block; /* Ensure it is a block-level element */
 }
 
 #myCanvas {
+    position: fixed;
+    bottom: 20px; /* Position it at the bottom-right corner */
+    right: 20px;
     width: 400px;
     height: 400px;
-    background-color: #4f4f4f; /* Darker grey background for better contrast */
-    box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.5);
-    transition: box-shadow 0.1s ease-in-out, transform 0.1s ease-in-out;
+    background-color: rgba(128, 128, 128, 0.7); /* Gray background with 70% opacity */
+    z-index: 10; /* Ensure it is on top */
+    pointer-events: auto; /* Ensure it can receive pointer events */
+    touch-action: none; /* Prevent default touch actions */
 }
 
 #myCanvas.pressed {
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.8); /* More prominent press effect */
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.8);
     transform: translateY(5px); /* Adds a 'pressed-down' feel */
+}
+
+/* Optional: Style the body to have a background color */
+body {
+    background-color: #f0f0f0;
 }

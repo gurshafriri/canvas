@@ -1,53 +1,42 @@
 // main.js
 
 import { setupEventListeners } from './events.js';
-import { audioCtx } from './audio.js'
 
-// Get canvas and context
+// Function to draw the background canvas
+function drawBackground() {
+    const backgroundCanvas = document.getElementById('backgroundCanvas');
+    const bgCtx = backgroundCanvas.getContext('2d');
+
+    const width = backgroundCanvas.width;
+    const height = backgroundCanvas.height;
+
+    // Divide the canvas into 4 equal areas
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+
+    // Draw first quadrant (top-left)
+    bgCtx.fillStyle = '#C0C0C0'; // Silver
+    bgCtx.fillRect(0, 0, halfWidth, halfHeight);
+
+    // Draw second quadrant (top-right)
+    bgCtx.fillStyle = '#B0C4DE'; // Light Steel Blue
+    bgCtx.fillRect(halfWidth, 0, halfWidth, halfHeight);
+
+    // Draw third quadrant (bottom-left)
+    bgCtx.fillStyle = '#D2B48C'; // Tan
+    bgCtx.fillRect(0, halfHeight, halfWidth, halfHeight);
+
+    // Draw fourth quadrant (bottom-right)
+    bgCtx.fillStyle = '#778899'; // Light Slate Gray
+    bgCtx.fillRect(halfWidth, halfHeight, halfWidth, halfHeight);
+}
+
+// Call the function to draw the background
+drawBackground();
+
+// Set up event listeners for the small canvas
 const canvas = document.getElementById('myCanvas');
 const ctx = canvas.getContext('2d');
 
-// Setup event listeners
+// Setup event listeners for the small canvas
 setupEventListeners(canvas, ctx);
-
-function isiOS() {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isIPadOS = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    return isIOS || isIPadOS;
-}
-
-if (isiOS()) {
-    // Create a button element
-    const activateButton = document.createElement('button');
-    activateButton.innerText = 'Click here to activate';
-
-    // Style the button to overlay the canvas
-    activateButton.style.position = 'absolute';
-    const canvasRect = canvas.getBoundingClientRect();
-    activateButton.style.left = `${canvasRect.left + window.scrollX}px`;
-    activateButton.style.top = `${canvasRect.top + window.scrollY}px`;
-    activateButton.style.width = `${canvasRect.width}px`;
-    activateButton.style.height = `${canvasRect.height}px`;
-    activateButton.style.zIndex = '1000';
-    activateButton.style.opacity = 0.7
-
-    // Append the button to the body
-    document.body.appendChild(activateButton);
-
-
-
-    // Add click event listener to the button
-    activateButton.addEventListener('click', async () => {
-        // Your function to run on click
-        // Example: initializeCanvas();
-    	if (audioCtx.state === 'suspended') {
-	        console.log(audioCtx.state)
-	        var audio = new Audio('https://github.com/anars/blank-audio/raw/refs/heads/master/10-minutes-of-silence.mp3');
-	        await audio.play()
-	        console.log("played silence")
-	        audioCtx.resume();
-      	}
-        // Remove the button after activation
-        activateButton.remove();
-    });
-}
